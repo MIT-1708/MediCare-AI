@@ -1,0 +1,90 @@
+{
+  "all_results": [
+    {
+      "model_name": "keras_nn",
+      "cv_roc_auc": null,
+      "test_accuracy": 0.7868852459016393,
+      "test_precision": 0.75,
+      "test_recall": 0.9090909090909091,
+      "test_f1": 0.821917808219178,
+      "test_roc_auc": 0.8982683982683983,
+      "confusion_matrix": [
+        [
+          18,
+          10
+        ],
+        [
+          3,
+          30
+        ]
+      ]
+    }
+  ],
+  "selected_model": "keras_nn",
+  "selected_metrics": {
+    "model_name": "keras_nn",
+    "cv_roc_auc": null,
+    "test_accuracy": 0.7868852459016393,
+    "test_precision": 0.75,
+    "test_recall": 0.9090909090909091,
+    "test_f1": 0.821917808219178,
+    "test_roc_auc": 0.8982683982683983,
+    "confusion_matrix": [
+      [
+        18,
+        10
+      ],
+      [
+        3,
+        30
+      ]
+    ]
+  },
+  "means": {
+    "age": 54.366336633663366,
+    "sex": 0.6831683168316832,
+    "cp": 0.966996699669967,
+    "trestbps": 131.62376237623764,
+    "chol": 246.26402640264027,
+    "fbs": 0.1485148514851485,
+    "restecg": 0.528052805280528,
+    "thalach": 149.64686468646866,
+    "exang": 0.32673267326732675,
+    "oldpeak": 1.0396039603960396,
+    "slope": 1.3993399339933994,
+    "ca": 0.7293729372937293,
+    "thal": 2.3135313531353137
+  },
+  "feature_columns": [
+    "age",
+    "sex",
+    "cp",
+    "trestbps",
+    "chol",
+    "fbs",
+    "restecg",
+    "thalach",
+    "exang",
+    "oldpeak",
+    "slope",
+    "ca",
+    "thal"
+  ],
+  "numeric_columns": [
+    "age",
+    "sex",
+    "cp",
+    "trestbps",
+    "chol",
+    "fbs",
+    "restecg",
+    "thalach",
+    "exang",
+    "oldpeak",
+    "slope",
+    "ca",
+    "thal"
+  ],
+  "positive_rate": 0.5445544554455446,
+  "keras_status": "available"
+}

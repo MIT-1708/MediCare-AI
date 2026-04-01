@@ -1,0 +1,151 @@
+{
+  "all_results": [
+    {
+      "model_name": "logreg",
+      "cv_roc_auc": 0.8408125,
+      "test_accuracy": 0.7402597402597403,
+      "test_precision": 0.6129032258064516,
+      "test_recall": 0.7037037037037037,
+      "test_f1": 0.6551724137931034,
+      "test_roc_auc": 0.8203703703703704,
+      "confusion_matrix": [
+        [
+          76,
+          24
+        ],
+        [
+          16,
+          38
+        ]
+      ]
+    },
+    {
+      "model_name": "rf",
+      "cv_roc_auc": 0.90003125,
+      "test_accuracy": 0.7337662337662337,
+      "test_precision": 0.6031746031746031,
+      "test_recall": 0.7037037037037037,
+      "test_f1": 0.6495726495726496,
+      "test_roc_auc": 0.8148148148148149,
+      "confusion_matrix": [
+        [
+          75,
+          25
+        ],
+        [
+          16,
+          38
+        ]
+      ]
+    },
+    {
+      "model_name": "xgb",
+      "cv_roc_auc": 0.875375,
+      "test_accuracy": 0.7207792207792207,
+      "test_precision": 0.5873015873015873,
+      "test_recall": 0.6851851851851852,
+      "test_f1": 0.6324786324786325,
+      "test_roc_auc": 0.8231481481481482,
+      "confusion_matrix": [
+        [
+          74,
+          26
+        ],
+        [
+          17,
+          37
+        ]
+      ]
+    },
+    {
+      "model_name": "ensemble_voting",
+      "cv_roc_auc": 0.8855000000000001,
+      "test_accuracy": 0.7532467532467533,
+      "test_precision": 0.6333333333333333,
+      "test_recall": 0.7037037037037037,
+      "test_f1": 0.6666666666666666,
+      "test_roc_auc": 0.8301851851851851,
+      "confusion_matrix": [
+        [
+          78,
+          22
+        ],
+        [
+          16,
+          38
+        ]
+      ]
+    },
+    {
+      "model_name": "keras_nn",
+      "cv_roc_auc": null,
+      "test_accuracy": 0.7077922077922078,
+      "test_precision": 0.5849056603773585,
+      "test_recall": 0.5740740740740741,
+      "test_f1": 0.5794392523364486,
+      "test_roc_auc": 0.8009259259259259,
+      "confusion_matrix": [
+        [
+          78,
+          22
+        ],
+        [
+          23,
+          31
+        ]
+      ]
+    }
+  ],
+  "selected_model": "ensemble_voting",
+  "selected_metrics": {
+    "model_name": "ensemble_voting",
+    "cv_roc_auc": 0.8855000000000001,
+    "test_accuracy": 0.7532467532467533,
+    "test_precision": 0.6333333333333333,
+    "test_recall": 0.7037037037037037,
+    "test_f1": 0.6666666666666666,
+    "test_roc_auc": 0.8301851851851851,
+    "confusion_matrix": [
+      [
+        78,
+        22
+      ],
+      [
+        16,
+        38
+      ]
+    ]
+  },
+  "means": {
+    "Pregnancies": 3.8450520833333335,
+    "Glucose": 120.89453125,
+    "BloodPressure": 69.10546875,
+    "SkinThickness": 20.536458333333332,
+    "Insulin": 79.79947916666667,
+    "BMI": 31.992578124999998,
+    "DiabetesPedigreeFunction": 0.47187630208333325,
+    "Age": 33.240885416666664
+  },
+  "feature_columns": [
+    "Pregnancies",
+    "Glucose",
+    "BloodPressure",
+    "SkinThickness",
+    "Insulin",
+    "BMI",
+    "DiabetesPedigreeFunction",
+    "Age"
+  ],
+  "numeric_columns": [
+    "Pregnancies",
+    "Glucose",
+    "BloodPressure",
+    "SkinThickness",
+    "Insulin",
+    "BMI",
+    "DiabetesPedigreeFunction",
+    "Age"
+  ],
+  "positive_rate": 0.3489583333333333,
+  "keras_status": "available"
+}

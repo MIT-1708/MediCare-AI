@@ -1,0 +1,62 @@
+{
+  "shape": [
+    400,
+    24
+  ],
+  "dtypes": {
+    "age": "float64",
+    "bp": "float64",
+    "sg": "float64",
+    "al": "float64",
+    "su": "float64",
+    "rbc": "object",
+    "pc": "object",
+    "pcc": "object",
+    "ba": "object",
+    "bgr": "float64",
+    "bu": "float64",
+    "sc": "float64",
+    "sod": "float64",
+    "pot": "float64",
+    "hemo": "float64",
+    "pcv": "float64",
+    "wc": "float64",
+    "rc": "object",
+    "htn": "object",
+    "dm": "object",
+    "cad": "object",
+    "appet": "object",
+    "pe": "object",
+    "ane": "object"
+  },
+  "missing_values": {
+    "age": 9,
+    "bp": 12,
+    "sg": 47,
+    "al": 46,
+    "su": 49,
+    "rbc": 152,
+    "pc": 65,
+    "pcc": 4,
+    "ba": 4,
+    "bgr": 44,
+    "bu": 19,
+    "sc": 17,
+    "sod": 87,
+    "pot": 88,
+    "hemo": 52,
+    "pcv": 71,
+    "wc": 106,
+    "rc": 131,
+    "htn": 2,
+    "dm": 2,
+    "cad": 2,
+    "appet": 1,
+    "pe": 1,
+    "ane": 1
+  },
+  "target_distribution": {
+    "1": 0.625,
+    "0": 0.375
+  }
+}

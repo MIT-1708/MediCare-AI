@@ -1,0 +1,177 @@
+{
+  "all_results": [
+    {
+      "model_name": "logreg",
+      "cv_roc_auc": 1.0,
+      "test_accuracy": 0.9875,
+      "test_precision": 1.0,
+      "test_recall": 0.98,
+      "test_f1": 0.98989898989899,
+      "test_roc_auc": 0.9993333333333333,
+      "confusion_matrix": [
+        [
+          30,
+          0
+        ],
+        [
+          1,
+          49
+        ]
+      ]
+    },
+    {
+      "model_name": "rf",
+      "cv_roc_auc": 1.0,
+      "test_accuracy": 1.0,
+      "test_precision": 1.0,
+      "test_recall": 1.0,
+      "test_f1": 1.0,
+      "test_roc_auc": 0.9999999999999999,
+      "confusion_matrix": [
+        [
+          30,
+          0
+        ],
+        [
+          0,
+          50
+        ]
+      ]
+    },
+    {
+      "model_name": "xgb",
+      "cv_roc_auc": 0.99925,
+      "test_accuracy": 1.0,
+      "test_precision": 1.0,
+      "test_recall": 1.0,
+      "test_f1": 1.0,
+      "test_roc_auc": 1.0,
+      "confusion_matrix": [
+        [
+          30,
+          0
+        ],
+        [
+          0,
+          50
+        ]
+      ]
+    },
+    {
+      "model_name": "ensemble_voting",
+      "cv_roc_auc": 1.0,
+      "test_accuracy": 1.0,
+      "test_precision": 1.0,
+      "test_recall": 1.0,
+      "test_f1": 1.0,
+      "test_roc_auc": 1.0,
+      "confusion_matrix": [
+        [
+          30,
+          0
+        ],
+        [
+          0,
+          50
+        ]
+      ]
+    },
+    {
+      "model_name": "keras_nn",
+      "cv_roc_auc": null,
+      "test_accuracy": 0.9875,
+      "test_precision": 1.0,
+      "test_recall": 0.98,
+      "test_f1": 0.98989898989899,
+      "test_roc_auc": 0.9993333333333333,
+      "confusion_matrix": [
+        [
+          30,
+          0
+        ],
+        [
+          1,
+          49
+        ]
+      ]
+    }
+  ],
+  "selected_model": "xgb",
+  "selected_metrics": {
+    "model_name": "xgb",
+    "cv_roc_auc": 0.99925,
+    "test_accuracy": 1.0,
+    "test_precision": 1.0,
+    "test_recall": 1.0,
+    "test_f1": 1.0,
+    "test_roc_auc": 1.0,
+    "confusion_matrix": [
+      [
+        30,
+        0
+      ],
+      [
+        0,
+        50
+      ]
+    ]
+  },
+  "means": {
+    "age": 51.48337595907928,
+    "bp": 76.46907216494846,
+    "sg": 1.0174079320113314,
+    "al": 1.0169491525423728,
+    "su": 0.45014245014245013,
+    "bgr": 148.0365168539326,
+    "bu": 57.425721784776904,
+    "sc": 3.072454308093995,
+    "sod": 137.52875399361022,
+    "pot": 4.62724358974359,
+    "hemo": 12.526436781609195,
+    "pcv": 38.88449848024316,
+    "wc": 8406.122448979591
+  },
+  "feature_columns": [
+    "age",
+    "bp",
+    "sg",
+    "al",
+    "su",
+    "rbc",
+    "pc",
+    "pcc",
+    "ba",
+    "bgr",
+    "bu",
+    "sc",
+    "sod",
+    "pot",
+    "hemo",
+    "pcv",
+    "wc",
+    "rc",
+    "htn",
+    "dm",
+    "cad",
+    "appet",
+    "pe",
+    "ane"
+  ],
+  "numeric_columns": [
+    "age",
+    "bp",
+    "sg",
+    "al",
+    "su",
+    "bgr",
+    "bu",
+    "sc",
+    "sod",
+    "pot",
+    "hemo",
+    "pcv",
+    "wc"
+  ],
+  "positive_rate": 0.625,
+  "keras_status": "available"
+}

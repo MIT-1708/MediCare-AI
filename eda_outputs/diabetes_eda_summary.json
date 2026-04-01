@@ -1,0 +1,30 @@
+{
+  "shape": [
+    768,
+    8
+  ],
+  "dtypes": {
+    "Pregnancies": "int64",
+    "Glucose": "int64",
+    "BloodPressure": "int64",
+    "SkinThickness": "int64",
+    "Insulin": "int64",
+    "BMI": "float64",
+    "DiabetesPedigreeFunction": "float64",
+    "Age": "int64"
+  },
+  "missing_values": {
+    "Pregnancies": 0,
+    "Glucose": 0,
+    "BloodPressure": 0,
+    "SkinThickness": 0,
+    "Insulin": 0,
+    "BMI": 0,
+    "DiabetesPedigreeFunction": 0,
+    "Age": 0
+  },
+  "target_distribution": {
+    "0": 0.6510416666666666,
+    "1": 0.3489583333333333
+  }
+}
