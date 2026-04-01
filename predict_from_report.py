@@ -175,8 +175,8 @@ def _grok_explain(bundle: Dict[str, object], X_row_transformed, parsed_values: D
         load_dotenv()
 
         # Support xAI / Grok (xAI) and Groq providers via separate env vars
-        grok_key = os.getenv("GROK_API_KEY")
-        groq_key = os.getenv("GROQ_API_KEY")
+        api_key = os.getenv("API_KEY")
+        api_key = os.getenv("API_KEY")
         api_key = grok_key or groq_key
         if not api_key:
             return {"error": "Grok/Groq API key is missing. Set GROK_API_KEY or GROQ_API_KEY in .env."}
