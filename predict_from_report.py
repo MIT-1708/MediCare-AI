@@ -221,6 +221,8 @@ def _grok_explain(bundle: Dict[str, object], X_row_transformed, parsed_values: D
 Medical values: {feature_context if feature_context else 'Not provided'}
 Keep it very simple - like talking to someone without medical training."""
 
+        import time
+
         # Get explanation from Grok/Groq; try known model IDs with fallback
         last_exception = None
         # try explicit candidate order, avoid deprecated/invalid models
@@ -230,12 +232,15 @@ Keep it very simple - like talking to someone without medical training."""
             "groq/compound",
             "llama-3.3-70b-versatile",
             "llama-3.1-8b-instant",
-           
         ]
 
         for grok_model in model_candidates:
             if not grok_model:
                 continue
+
+            # Avoid hard rate limit by pausing a bit between model trials
+            time.sleep(0.5)
+
             try:
                 response = client.chat.completions.create(
                     model=grok_model,
@@ -243,18 +248,24 @@ Keep it very simple - like talking to someone without medical training."""
                         {"role": "system", "content": "You are a helpful medical assistant. Explain health risks in simple language."},
                         {"role": "user", "content": prompt}
                     ],
-                    max_tokens=150,
+                    max_tokens=120,
                     temperature=0.3
                 )
                 used_model = grok_model
                 break
             except Exception as inner_exc:
                 last_exception = inner_exc
-                # if specific invalid model, keep trying next candidate
                 msg = str(inner_exc).lower()
+
                 if "model not found" in msg or "invalid argument" in msg or "does not exist" in msg:
                     continue
-                # if auth or rate limit or unknown error, stop and expose
+
+                if "rate limit" in msg:
+                    # Try to continue with next model after short delay.
+                    time.sleep(1.0)
+                    continue
+
+                # if auth or other non-retriable error, stop and expose
                 return {"error": f"Grok explanation unavailable: {inner_exc}"}
         else:
             return {"error": f"Grok explanation unavailable: {last_exception}"}
