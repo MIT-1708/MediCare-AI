@@ -230,8 +230,7 @@ Keep it very simple - like talking to someone without medical training."""
             "groq/compound",
             "llama-3.3-70b-versatile",
             "llama-3.1-8b-instant",
-            "gpt-4o-mini",
-            "gpt-4o",
+           
         ]
 
         for grok_model in model_candidates:
