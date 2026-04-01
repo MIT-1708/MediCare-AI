@@ -7,6 +7,24 @@ import pandas as pd
 from predict_from_report import run
 from datetime import datetime
 
+# Make sure Streamlit secret-managed API keys work in deployed env
+# Avoid StreamlitSecretNotFoundError when no secrets.toml is present
+def _get_secret(key):
+    try:
+        return st.secrets.get(key) if hasattr(st, "secrets") and hasattr(st.secrets, "get") else None
+    except Exception:
+        return None
+
+if "GROK_API_KEY" not in os.environ:
+    grok_secret = _get_secret("GROK_API_KEY")
+    if grok_secret:
+        os.environ["GROK_API_KEY"] = grok_secret
+
+if "GROQ_API_KEY" not in os.environ:
+    groq_secret = _get_secret("GROQ_API_KEY")
+    if groq_secret:
+        os.environ["GROQ_API_KEY"] = groq_secret
+
 # Page configuration
 st.set_page_config(
     page_title="MediCare AI - Professional Health Analysis",
@@ -698,6 +716,19 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
 
+    with st.expander("Connect Grok/Groq API key", expanded=False):
+        grok_k = st.text_input("GROK_API_KEY", type="password", value=st.session_state.get("grok_api_key", ""))
+        groq_k = st.text_input("GROQ_API_KEY", type="password", value=st.session_state.get("groq_api_key", ""))
+        if st.button("Save API keys"):
+            if grok_k:
+                st.session_state["grok_api_key"] = grok_k
+                os.environ["GROK_API_KEY"] = grok_k
+                st.success("GROK_API_KEY stored in session")
+            if groq_k:
+                st.session_state["groq_api_key"] = groq_k
+                os.environ["GROQ_API_KEY"] = groq_k
+                st.success("GROQ_API_KEY stored in session")
+
 # Main disclaimer
 st.markdown("""
 <div class="alert-danger">
@@ -1339,6 +1370,13 @@ if uploaded_file is not None:
                     tmp.write(uploaded_file.getbuffer())
                     tmp_path = tmp.name
                 
+                # Keep session API key in environment for this run
+                if st.session_state.get("grok_api_key"):
+                    os.environ["GROK_API_KEY"] = st.session_state["grok_api_key"]
+
+                if st.session_state.get("groq_api_key"):
+                    os.environ["GROQ_API_KEY"] = st.session_state["groq_api_key"]
+
                 # Run prediction
                 result = run(tmp_path, models_dir="models")
                 

@@ -7,7 +7,8 @@ from typing import Dict, Tuple
 import joblib
 import numpy as np
 import pandas as pd
-
+import streamlit as st
+import openai
 
 def extract_text_from_pdf(file_path: str) -> str:
     import pdfplumber
@@ -175,9 +176,10 @@ def _grok_explain(bundle: Dict[str, object], X_row_transformed, parsed_values: D
         load_dotenv()
 
         # Support xAI / Grok (xAI) and Groq providers via separate env vars
-        api_key = os.getenv("API_KEY")
-        api_key = os.getenv("API_KEY")
-        api_key = grok_key or groq_key
+        grok_key = os.getenv("GROK_API_KEY")
+        groq_key = os.getenv("GROQ_API_KEY")
+        api_key = grok_key or groq_key or os.getenv("API_KEY")
+
         if not api_key:
             return {"error": "Grok/Groq API key is missing. Set GROK_API_KEY or GROQ_API_KEY in .env."}
 
@@ -188,7 +190,6 @@ def _grok_explain(bundle: Dict[str, object], X_row_transformed, parsed_values: D
                 base_url = "https://api.groq.com/openai/v1"
             else:
                 base_url = "https://api.x.ai/v1"
-
         client = openai.OpenAI(
             api_key=api_key,
             base_url=base_url,
@@ -222,10 +223,20 @@ Keep it very simple - like talking to someone without medical training."""
 
         # Get explanation from Grok/Groq; try known model IDs with fallback
         last_exception = None
-        # Groq models: llama-3.3, llama-3.1, compound; xAI models: grok-*
-        model_candidates = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "groq/compound", "grok-1", "grok-mini"]
+        # try explicit candidate order, avoid deprecated/invalid models
+        model_candidates = [
+            os.getenv("GROK_MODEL", "grok-1"),
+            "grok-1",
+            "groq/compound",
+            "llama-3.3-70b-versatile",
+            "llama-3.1-8b-instant",
+            "gpt-4o-mini",
+            "gpt-4o",
+        ]
 
         for grok_model in model_candidates:
+            if not grok_model:
+                continue
             try:
                 response = client.chat.completions.create(
                     model=grok_model,
@@ -240,6 +251,12 @@ Keep it very simple - like talking to someone without medical training."""
                 break
             except Exception as inner_exc:
                 last_exception = inner_exc
+                # if specific invalid model, keep trying next candidate
+                msg = str(inner_exc).lower()
+                if "model not found" in msg or "invalid argument" in msg or "does not exist" in msg:
+                    continue
+                # if auth or rate limit or unknown error, stop and expose
+                return {"error": f"Grok explanation unavailable: {inner_exc}"}
         else:
             return {"error": f"Grok explanation unavailable: {last_exception}"}
 
