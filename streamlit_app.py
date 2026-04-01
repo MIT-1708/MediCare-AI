@@ -828,7 +828,7 @@ def format_result(result: dict):
                 risky_colors = ['#dc3545', '#ffc107', '#28a745']
                 labels = df_chart['Disease']
                 values = df_chart['Probability (%)']
-                wedges, texts = ax2.pie(
+                wedges, texts, autotexts = ax2.pie(
                     values,
                     labels=labels,
                     colors=[risky_colors[i % len(risky_colors)] for i in range(len(values))],
