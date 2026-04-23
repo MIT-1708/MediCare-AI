@@ -1,11 +1,17 @@
-import streamlit as st
-import tempfile
 import os
+import tempfile
 import html
+from datetime import datetime
+from pathlib import Path
+
 import matplotlib.pyplot as plt
 import pandas as pd
-from predict_from_report import run
-from datetime import datetime
+import streamlit as st
+
+from predict_from_report import predict_from_parsed, run
+
+APP_DIR = Path(__file__).resolve().parent
+ASSETS_DIR = APP_DIR / "assets"
 
 # Make sure Streamlit secret-managed API keys work in deployed env
 # Avoid StreamlitSecretNotFoundError when no secrets.toml is present
@@ -34,630 +40,17 @@ st.set_page_config(
 )
 
 # Professional medical UI styling
-st.markdown("""
-<style>
-    :root {
-        --bg-0: #061725;
-        --bg-1: #0a2337;
-        --ink-1: #eaf3ff;
-        --ink-2: #b9d3ea;
-        --line: #1a3b56;
-        --line-strong: #2a5a7c;
-        --primary: #1a63ff;
-        --primary-dark: #0c3a99;
-        --accent: #00c2b8;
-        --warn: #ffb14a;
-        --danger: #ff6b7a;
-        --success: #43d17a;
-        --shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
-    }
+def load_css(css_path: Path):
+    """Load app-level CSS from the assets directory."""
+    if not css_path.exists():
+        st.error(f"Missing stylesheet: {css_path}")
+        return
 
-    * {
-        font-family: "Aptos", "Trebuchet MS", "Segoe UI Variable", "Segoe UI", sans-serif;
-    }
+    css = css_path.read_text(encoding="utf-8-sig")
+    st.markdown(f"<style>\n{css}\n</style>", unsafe_allow_html=True)
 
-    [data-testid="stAppViewContainer"] {
-        background:
-            radial-gradient(85rem 50rem at -10% -5%, rgba(26, 99, 255, 0.25) 0%, transparent 60%),
-            radial-gradient(72rem 42rem at 105% -5%, rgba(0, 194, 184, 0.20) 0%, transparent 55%),
-            linear-gradient(180deg, #041123 0%, #061725 100%);
-    }
 
-    .main {
-        background: transparent !important;
-    }
-
-    [data-testid="stSidebar"] > div:first-child {
-        background: linear-gradient(180deg, #071c2f 0%, #061725 100%);
-        border-right: 1px solid var(--line);
-    }
-
-    .header-container {
-        background: linear-gradient(132deg, #0c3a99 0%, #0b2f7b 50%, #071f55 100%);
-        padding: 36px;
-        border-radius: 18px;
-        margin-bottom: 26px;
-        color: #fff;
-        box-shadow: var(--shadow);
-        border: 1px solid rgba(255, 255, 255, 0.22);
-        position: relative;
-        overflow: hidden;
-        animation: fadeUp 0.6s ease-out forwards;
-    }
-    
-    @keyframes fadeUp {
-        0% { opacity: 0; transform: translateY(20px); }
-        100% { opacity: 1; transform: translateY(0); }
-    }
-    
-    .main .block-container {
-        animation: fadeUp 0.6s ease-out forwards;
-    }
-
-    .header-container::before {
-        content: "";
-        position: absolute;
-        inset: auto -80px -130px auto;
-        width: 320px;
-        height: 320px;
-        border-radius: 50%;
-        background: radial-gradient(circle, rgba(255, 255, 255, 0.22) 0%, transparent 64%);
-    }
-
-    .header-container h1 {
-        margin: 0;
-        font-size: 2.2rem;
-        letter-spacing: 0.2px;
-        font-weight: 750;
-    }
-
-    .header-container .subtitle {
-        margin-top: 8px;
-        font-size: 1rem;
-        opacity: 0.95;
-        max-width: 56ch;
-    }
-
-    .header-row {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 16px;
-    }
-
-    .badge-container {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: flex-end;
-        gap: 8px;
-        max-width: 320px;
-    }
-
-    .badge,
-    .badge-medical {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        background: rgba(255, 255, 255, 0.2);
-        color: #fff;
-        padding: 6px 12px;
-        border-radius: 999px;
-        border: 1px solid rgba(255, 255, 255, 0.42);
-        font-size: 0.74rem;
-        font-weight: 650;
-        letter-spacing: 0.2px;
-        backdrop-filter: blur(1px);
-    }
-
-    .badge-certified {
-        background: rgba(0, 168, 157, 0.26);
-        border-color: rgba(143, 255, 246, 0.74);
-    }
-
-    .card {
-        background: var(--bg-1);
-        border: 1px solid var(--line);
-        border-radius: 16px;
-        box-shadow: var(--shadow);
-        padding: 24px;
-        margin-bottom: 18px;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-    
-    .card:hover, .metric-box:hover, .sidebar-section:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 12px 28px rgba(0,0,0,0.4);
-    }
-
-    .card-title {
-        color: var(--ink-1);
-        font-size: 1.15rem;
-        font-weight: 730;
-        margin-bottom: 14px;
-        padding-bottom: 10px;
-        border-bottom: 2px solid var(--line-strong);
-    }
-
-    .stButton>button {
-        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-        color: #fff;
-        border: 0;
-        border-radius: 10px;
-        min-height: 2.8rem;
-        font-weight: 700;
-        box-shadow: 0 8px 20px rgba(15, 95, 133, 0.25);
-        transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
-    }
-
-    .stButton>button:hover {
-        transform: translateY(-1px);
-        filter: brightness(1.02);
-        box-shadow: 0 11px 24px rgba(15, 95, 133, 0.32);
-    }
-
-    .stDownloadButton>button {
-        background: linear-gradient(135deg, rgba(26, 99, 255, 0.15) 0%, rgba(0, 194, 184, 0.12) 100%);
-        color: var(--ink-1);
-        border: 1px solid var(--primary);
-        border-radius: 10px;
-        min-height: 2.7rem;
-        font-weight: 650;
-    }
-
-    /* Form controls - hospital style, high readability */
-    .stTextInput>div>div>input,
-    .stNumberInput>div>div>input,
-    .stSelectbox>div>div,
-    .stTextArea textarea {
-        background: rgba(5, 20, 35, 0.65) !important;
-        color: var(--ink-1) !important;
-        border: 1px solid #1f4a67 !important;
-        border-radius: 10px !important;
-    }
-
-    .stTextInput>div>div>input:focus,
-    .stNumberInput>div>div>input:focus,
-    .stTextArea textarea:focus {
-        border-color: var(--primary) !important;
-        box-shadow: 0 0 0 3px rgba(26, 99, 255, 0.22) !important;
-    }
-
-    /* File uploader — same dark theme as page background */
-    [data-testid="stFileUploaderDropzone"] {
-        background: rgba(10, 35, 55, 0.65) !important;
-        border: 2px dashed var(--line-strong) !important;
-        border-radius: 14px !important;
-        padding-top: 1.15rem !important;
-        padding-bottom: 1.15rem !important;
-        min-height: 138px !important;
-    }
-
-    [data-testid="stFileUploaderDropzone"]:hover {
-        border-color: var(--primary) !important;
-        background: rgba(26, 99, 255, 0.10) !important;
-    }
-
-    [data-testid="stFileUploaderDropzoneInstructions"] div {
-        color: var(--ink-1) !important;
-    }
-
-    [data-testid="stFileUploaderDropzone"] small {
-        color: var(--ink-2) !important;
-    }
-
-    [data-testid="stFileUploaderDropzone"] button {
-        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%) !important;
-        color: #ffffff !important;
-        border: none !important;
-        border-radius: 10px !important;
-        font-weight: 700 !important;
-    }
-
-    [data-testid="stFileUploader"] {
-        border: 1px solid var(--line);
-        border-radius: 14px;
-        padding: 4px;
-        background: rgba(6, 23, 37, 0.5) !important;
-    }
-
-    [data-testid="stFileUploaderFileList"],
-    [data-testid="stFileUploaderFileList"] li {
-        background: transparent !important;
-    }
-
-    [data-testid="stUploadedFile"] {
-        background: rgba(10, 35, 55, 0.85) !important;
-        border: 1px solid var(--line) !important;
-        border-radius: 12px !important;
-        color: var(--ink-1) !important;
-    }
-
-    .upload-card-light [data-testid="stWidgetLabel"] p {
-        color: var(--ink-1) !important;
-        font-weight: 650 !important;
-        font-size: 1rem !important;
-    }
-
-    .upload-intro {
-        padding: 8px 6px 18px;
-    }
-
-    .upload-panel-title {
-        text-align: center;
-        color: var(--ink-1);
-        font-size: 1.35rem;
-        font-weight: 800;
-        letter-spacing: -0.02em;
-        margin: 0 0 6px 0;
-    }
-
-    .upload-panel-sub {
-        text-align: center;
-        color: var(--ink-2);
-        font-size: 0.95rem;
-        line-height: 1.5;
-        margin: 0 0 8px 0;
-    }
-
-    .upload-hint {
-        text-align: center;
-        color: #83a9c7;
-        font-size: 0.82rem;
-        margin: 0 0 18px 0;
-    }
-
-    .upload-card-light {
-        background: linear-gradient(180deg, var(--bg-1) 0%, rgba(10, 35, 55, 0.92) 100%) !important;
-        border: 1px solid var(--line) !important;
-        box-shadow: var(--shadow) !important;
-    }
-
-    .upload-file-row {
-        display: flex;
-        align-items: center;
-        gap: 14px;
-        margin-top: 18px;
-        padding: 14px 18px;
-        background: rgba(10, 35, 55, 0.75);
-        border: 1px solid var(--line);
-        border-radius: 14px;
-        box-shadow: 0 4px 18px rgba(0, 0, 0, 0.25);
-    }
-
-    .upload-file-icon {
-        width: 40px;
-        height: 40px;
-        border-radius: 10px;
-        background: linear-gradient(135deg, rgba(26, 99, 255, 0.15) 0%, rgba(10, 35, 55, 0.9) 100%);
-        border: 1px solid var(--line-strong);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.2rem;
-        flex-shrink: 0;
-    }
-
-    .upload-file-meta {
-        min-width: 0;
-        flex: 1;
-    }
-
-    .upload-file-name {
-        color: var(--ink-1);
-        font-weight: 700;
-        font-size: 0.95rem;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    .upload-file-size {
-        color: var(--ink-2);
-        font-size: 0.82rem;
-        margin-top: 2px;
-    }
-
-    .upload-file-status {
-        margin-left: auto;
-        flex-shrink: 0;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        color: var(--success);
-        font-weight: 750;
-        font-size: 0.88rem;
-    }
-
-    .upload-file-status .check {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 22px;
-        height: 22px;
-        border-radius: 50%;
-        background: rgba(67, 209, 122, 0.18);
-        color: var(--success);
-        font-size: 0.75rem;
-    }
-
-    .metric-box {
-        background: linear-gradient(180deg, rgba(26, 99, 255, 0.08) 0%, rgba(10, 35, 55, 1) 100%);
-        border: 1px solid #1a3b56;
-        border-left: 4px solid var(--primary);
-        border-radius: 12px;
-        padding: 14px;
-        margin-bottom: 12px;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-
-    .metric-label {
-        color: var(--ink-2);
-        font-size: 0.72rem;
-        letter-spacing: 0.55px;
-        text-transform: uppercase;
-        font-weight: 760;
-    }
-
-    .metric-value {
-        color: var(--ink-1);
-        font-size: 1.45rem;
-        font-weight: 760;
-        margin-top: 5px;
-    }
-
-    .metric-safe {
-        color: #83a9c7;
-        margin-top: 6px;
-        font-size: 0.82rem;
-    }
-
-    .alert-danger,
-    .alert-warning,
-    .alert-success,
-    .alert-info {
-        border-radius: 12px;
-        padding: 14px 16px;
-        margin-bottom: 14px;
-        border: 1px solid transparent;
-    }
-
-    .alert-danger {
-        background: rgba(255, 107, 122, 0.12);
-        border-color: rgba(255, 107, 122, 0.35);
-        color: #ffd1d7;
-    }
-
-    .alert-warning {
-        background: rgba(255, 177, 74, 0.12);
-        border-color: rgba(255, 177, 74, 0.35);
-        color: #ffe4b9;
-    }
-
-    .alert-success {
-        background: rgba(67, 209, 122, 0.10);
-        border-color: rgba(67, 209, 122, 0.30);
-        color: #c9f6dd;
-    }
-
-    .alert-info {
-        background: rgba(26, 99, 255, 0.10);
-        border-color: rgba(26, 99, 255, 0.28);
-        color: #cfe1ff;
-    }
-
-    .risk-high,
-    .risk-medium,
-    .risk-low {
-        border-radius: 13px;
-        text-align: center;
-        padding: 18px 14px;
-        border: 1px solid;
-        margin: 10px 0;
-    }
-
-    .risk-high {
-        background: rgba(255, 107, 122, 0.12);
-        border-color: rgba(255, 107, 122, 0.35);
-        color: #ffccd3;
-    }
-
-    .risk-medium {
-        background: rgba(255, 177, 74, 0.10);
-        border-color: rgba(255, 177, 74, 0.35);
-        color: #ffe4b9;
-    }
-
-    .risk-low {
-        background: rgba(67, 209, 122, 0.10);
-        border-color: rgba(67, 209, 122, 0.30);
-        color: #c9f6dd;
-    }
-
-    .risk-title {
-        font-size: 1rem;
-        font-weight: 700;
-    }
-
-    .risk-percent {
-        font-size: 1.7rem;
-        font-weight: 760;
-        margin: 4px 0;
-    }
-
-    .risk-level {
-        font-size: 0.82rem;
-        font-weight: 700;
-        letter-spacing: 0.4px;
-    }
-
-    .sidebar-section {
-        background: #0a2033;
-        border: 1px solid var(--line);
-        border-radius: 13px;
-        box-shadow: 0 8px 20px rgba(7, 48, 77, 0.06);
-        padding: 16px;
-        margin-bottom: 14px;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-
-    .sidebar-title {
-        color: var(--ink-1);
-        font-size: 0.92rem;
-        font-weight: 730;
-        margin-bottom: 8px;
-    }
-
-    .sidebar-text {
-        color: #b9d3ea;
-        font-size: 0.82rem;
-        line-height: 1.65;
-    }
-
-    .divider {
-        margin: 24px 0;
-        border: 0;
-        border-top: 1px solid var(--line-strong);
-    }
-
-    @media (max-width: 900px) {
-        .header-row {
-            flex-direction: column;
-            gap: 14px;
-        }
-
-        .badge-container {
-            justify-content: flex-start;
-            max-width: none;
-        }
-
-        .header-container {
-            padding: 24px 20px;
-            border-radius: 15px;
-        }
-
-        .header-container h1 {
-            font-size: 1.75rem;
-        }
-    }
-
-    /* —— Overall app theme: Streamlit defaults → MediCare palette —— */
-    .stApp {
-        color: var(--ink-2);
-        background-color: var(--bg-0) !important;
-    }
-
-    [data-testid="stMain"],
-    [data-testid="stMain"] > div {
-        background: transparent !important;
-    }
-
-    .main .block-container {
-        padding-top: 1.25rem;
-        padding-bottom: 3rem;
-        max-width: 1200px;
-    }
-
-    /* Main text: paragraphs & lists outside custom HTML cards */
-    .main [data-testid="stMarkdownContainer"] p,
-    .main [data-testid="stMarkdownContainer"] li,
-    .main [data-testid="stMarkdownContainer"] td {
-        color: var(--ink-2) !important;
-    }
-
-    .main [data-testid="stMarkdownContainer"] strong {
-        color: var(--ink-1) !important;
-    }
-
-    .main [data-testid="stMarkdownContainer"] h1,
-    .main [data-testid="stMarkdownContainer"] h2,
-    .main [data-testid="stMarkdownContainer"] h3,
-    .main [data-testid="stMarkdownContainer"] h4 {
-        color: var(--ink-1) !important;
-        font-weight: 700;
-    }
-
-    .main [data-testid="stMarkdownContainer"] a {
-        color: #7eb8ff !important;
-    }
-
-    /* Captions & small labels */
-    .stCaption,
-    [data-testid="stCaptionContainer"] {
-        color: var(--ink-2) !important;
-        opacity: 0.95;
-    }
-
-    /* Expanders (About, explanations) */
-    [data-testid="stExpander"] {
-        background: var(--bg-1) !important;
-        border: 1px solid var(--line) !important;
-        border-radius: 14px !important;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-    }
-
-    [data-testid="stExpander"] summary {
-        color: var(--ink-1) !important;
-        font-weight: 650 !important;
-    }
-
-    [data-testid="stExpander"] summary:hover {
-        color: #ffffff !important;
-    }
-
-    [data-testid="stExpanderDetails"] {
-        color: var(--ink-2);
-    }
-
-    /* Data tables (SHAP / pandas) */
-    .main [data-testid="stTable"] table {
-        color: var(--ink-1) !important;
-    }
-
-    .main [data-testid="stTable"] thead tr th {
-        background: rgba(26, 99, 255, 0.12) !important;
-        color: var(--ink-1) !important;
-        border-color: var(--line) !important;
-    }
-
-    .main [data-testid="stTable"] tbody tr td {
-        border-color: var(--line) !important;
-        background: rgba(10, 35, 55, 0.45) !important;
-    }
-
-    /* Built-in alerts */
-    [data-testid="stAlert"] {
-        border-radius: 12px !important;
-        border: 1px solid var(--line) !important;
-    }
-
-    /* Top toolbar area */
-    header[data-testid="stHeader"] {
-        background: linear-gradient(180deg, rgba(7, 28, 47, 0.95) 0%, rgba(7, 28, 47, 0.65) 100%) !important;
-        border-bottom: 1px solid var(--line) !important;
-    }
-
-    [data-testid="stToolbar"] button {
-        color: var(--ink-2) !important;
-    }
-
-    /* Spinner text */
-    .stSpinner > div {
-        color: var(--ink-1) !important;
-    }
-
-    /* Dividers Streamlit inserts */
-    hr {
-        border-color: var(--line-strong) !important;
-        opacity: 0.85;
-    }
-
-    /* Sidebar: Streamlit native widgets */
-    [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p,
-    [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] li {
-        color: var(--ink-2) !important;
-    }
-</style>
-""", unsafe_allow_html=True)
+load_css(ASSETS_DIR / "styles.css")
 
 # Professional medical header
 st.markdown("""
@@ -738,7 +131,9 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# Safe ranges reference
+MODEL_DIR = "models"
+
+# Clinical reference ranges shown beside extracted or manually entered values.
 SAFE_RANGES = {
     "age": "18-65",
     "glucose": "70-140 mg/dL",
@@ -1019,7 +414,7 @@ def format_result(result: dict):
                     st.markdown(
                         "<div style='margin-top:10px;color:rgba(185,211,234,0.95)'>"
                         "Note: If a value was missing from the report, the model may use typical baseline values "
-                        "from training data for that part of the calculation. So explanations reflect the model’s estimates."
+                        "from training data for that part of the calculation. So explanations reflect the modelâ€™s estimates."
                         "</div>",
                         unsafe_allow_html=True,
                     )
@@ -1097,7 +492,7 @@ def _build_pdf_report_bytes(result: dict) -> bytes:
     story.append(Spacer(1, 0.2*inch))
 
     # ===== DISCLAIMER SECTION =====
-    story.append(Paragraph("⚠ Important Medical Disclaimer", heading_style))
+    story.append(Paragraph("âš  Important Medical Disclaimer", heading_style))
     disclaimer_text = """
     <font size=9>
     This report contains <b>AI-powered predictive estimates ONLY</b> and is <b>NOT a medical diagnosis</b>. 
@@ -1138,7 +533,7 @@ def _build_pdf_report_bytes(result: dict) -> bytes:
     row_idx = 1
     for param, value in parsed_values.items():
         safe = SAFE_RANGES.get(param, "N/A")
-        status_text = '✓ Normal'
+        status_text = 'âœ“ Normal'
 
         table_data.append([param.title(), str(value), str(safe), status_text])
         table_style_list.append(('BACKGROUND', (3, row_idx), (3, row_idx), colors.HexColor('#d4edda')))
@@ -1261,11 +656,11 @@ def _build_pdf_report_bytes(result: dict) -> bytes:
 
     recommendations = """
     <font size=10>
-    <b>•</b> Schedule an appointment with your healthcare provider to discuss these results<br/>
-    <b>•</b> Bring this report to your doctor for professional review and diagnosis<br/>
-    <b>•</b> Maintain regular health monitoring and preventive care<br/>
-    <b>•</b> Follow lifestyle recommendations from your physician<br/>
-    <b>•</b> Do not delay seeking medical attention if experiencing health concerns
+    <b>â€¢</b> Schedule an appointment with your healthcare provider to discuss these results<br/>
+    <b>â€¢</b> Bring this report to your doctor for professional review and diagnosis<br/>
+    <b>â€¢</b> Maintain regular health monitoring and preventive care<br/>
+    <b>â€¢</b> Follow lifestyle recommendations from your physician<br/>
+    <b>â€¢</b> Do not delay seeking medical attention if experiencing health concerns
     </font>
     """
     story.append(Paragraph(recommendations, styles['Normal']))
@@ -1285,18 +680,218 @@ def _build_pdf_report_bytes(result: dict) -> bytes:
     return pdf_buffer.read()
 
 
-# Upload section — drag-and-drop card (clear for non-technical users)
-st.markdown('<div class="card upload-card-light">', unsafe_allow_html=True)
+MANUAL_VALUE_FIELDS = [
+    ("age", "Age", "years", "45"),
+    ("glucose", "Glucose", "mg/dL", "110"),
+    ("bp", "Blood Pressure (Systolic)", "mmHg", "120"),
+    ("cholesterol", "Cholesterol", "mg/dL", "180"),
+    ("bmi", "BMI", "kg/m2", "24.5"),
+    ("creatinine", "Creatinine", "mg/dL", "1.0"),
+    ("urea", "Urea", "mg/dL", "15"),
+    ("albumin", "Albumin", "g/dL", "4.0"),
+    ("hemoglobin", "Hemoglobin", "g/dL", "13.5"),
+]
+
+MANUAL_FIELD_LOOKUP = {field[0]: field for field in MANUAL_VALUE_FIELDS}
+
+MANUAL_PROBLEM_OPTIONS = [
+    {
+        "key": "diabetes",
+        "title": "Diabetes",
+        "summary": "Glucose, BMI, and age",
+        "fields": ["glucose", "bmi", "age"],
+    },
+    {
+        "key": "heart",
+        "title": "Heart Disease",
+        "summary": "Age, blood pressure, and cholesterol",
+        "fields": ["age", "bp", "cholesterol"],
+    },
+    {
+        "key": "ckd",
+        "title": "Kidney Disease",
+        "summary": "Creatinine, urea, albumin, and hemoglobin",
+        "fields": ["creatinine", "urea", "albumin", "hemoglobin"],
+    },
+]
+
+MANUAL_PROBLEM_LOOKUP = {problem["key"]: problem for problem in MANUAL_PROBLEM_OPTIONS}
+
+
+def _sync_session_api_keys_to_env():
+    """Keep saved sidebar API keys available for prediction explanations."""
+    if st.session_state.get("grok_api_key"):
+        os.environ["GROK_API_KEY"] = st.session_state["grok_api_key"]
+
+    if st.session_state.get("groq_api_key"):
+        os.environ["GROQ_API_KEY"] = st.session_state["groq_api_key"]
+
+
+def _parse_manual_values(raw_values: dict) -> tuple[dict, list[str]]:
+    """Convert form strings into numeric model inputs and collect validation errors."""
+    parsed = {}
+    errors = []
+
+    for key, raw in raw_values.items():
+        cleaned = str(raw or "").strip()
+        if not cleaned:
+            continue
+        try:
+            parsed[key] = float(cleaned)
+        except ValueError:
+            label = MANUAL_FIELD_LOOKUP.get(key, (key, key))[1]
+            errors.append(f"{label} must be a number.")
+
+    return parsed, errors
+
+
+def _show_completed_analysis(result: dict, download_key: str):
+    """Render shared results, next steps, and PDF download for both input paths."""
+    st.markdown('<hr class="divider">', unsafe_allow_html=True)
+    st.markdown('<div class="card-title">Analysis Results</div>', unsafe_allow_html=True)
+
+    format_result(result)
+
+    st.markdown('<hr class="divider">', unsafe_allow_html=True)
+    st.markdown("""
+    <div class="alert-success">
+        <strong>Analysis Complete</strong><br>
+        Results have been generated. Review carefully and consult your healthcare provider.
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+    <div class="card-title">Next Steps</div>
+    <div class="sidebar-text">
+    1. <strong>Review Results</strong> - Examine the risk assessments above<br>
+    2. <strong>Consult Doctor</strong> - Share these results with your healthcare provider<br>
+    3. <strong>Follow-up</strong> - Get professional diagnosis and treatment plan<br>
+    4. <strong>Download PDF Report</strong> - Save the formatted report for your records
+    </div>
+    """, unsafe_allow_html=True)
+
+    try:
+        pdf_bytes = _build_pdf_report_bytes(result)
+        st.download_button(
+            label="Download PDF Report",
+            data=pdf_bytes,
+            file_name=f"medicare_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+            mime="application/pdf",
+            use_container_width=True,
+            key=download_key,
+        )
+    except Exception as e:
+        st.warning(f"PDF generation failed: {str(e)}")
+
+
+# Manual value workflow
+st.markdown('<div class="card-title">Enter Medical Values Manually</div>', unsafe_allow_html=True)
 st.markdown(
     """
-    <div class="upload-intro">
-        <div class="upload-panel-title">Drag and Drop File Uploader</div>
-        <div class="upload-panel-sub">Upload a photo or PDF of your lab report. Drag it into the box below, or use <strong>Browse files</strong>.</div>
-        <div class="upload-hint">We accept PDF, PNG, JPG, or JPEG · up to 200MB per file</div>
+    <div class="alert-info">
+        Use this option when you already know your lab values or do not have a report file to upload.
     </div>
     """,
     unsafe_allow_html=True,
 )
+
+if "manual_problem_key" not in st.session_state:
+    st.session_state["manual_problem_key"] = None
+
+problem_cols = st.columns(3)
+for idx, problem in enumerate(MANUAL_PROBLEM_OPTIONS):
+    is_selected = st.session_state["manual_problem_key"] == problem["key"]
+    selected_label = "Open" if is_selected else "Select"
+    with problem_cols[idx]:
+        st.markdown(
+            f"""
+            <div class="metric-box" style="min-height:118px;border-left-color:{'#43d17a' if is_selected else '#1a63ff'};">
+                <div class="metric-label">{html.escape(selected_label)}</div>
+                <div class="metric-value" style="font-size:1.15rem;">{html.escape(problem["title"])}</div>
+                <div class="metric-safe">{html.escape(problem["summary"])}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        if st.button(problem["title"], key=f"select_manual_{problem['key']}", use_container_width=True):
+            if is_selected:
+                st.session_state["manual_problem_key"] = None
+            else:
+                st.session_state["manual_problem_key"] = problem["key"]
+            st.rerun()
+
+selected_problem = None
+manual_inputs = {}
+manual_analyze_button = False
+
+if st.session_state["manual_problem_key"]:
+    selected_problem = MANUAL_PROBLEM_LOOKUP[st.session_state["manual_problem_key"]]
+    st.markdown(
+        f'<div class="card-title">{html.escape(selected_problem["title"])} Manual Input</div>',
+        unsafe_allow_html=True,
+    )
+
+    with st.form(f"manual_values_form_{selected_problem['key']}"):
+        selected_fields = selected_problem["fields"]
+        for row_start in range(0, len(selected_fields), 3):
+            current_fields = selected_fields[row_start:row_start + 3]
+            cols = st.columns(min(3, len(current_fields)))
+            for idx, field_key in enumerate(current_fields):
+                key, label, unit, placeholder = MANUAL_FIELD_LOOKUP[field_key]
+                with cols[idx]:
+                    manual_inputs[key] = st.text_input(
+                        f"{label} ({unit})",
+                        value="",
+                        placeholder=placeholder,
+                        key=f"manual_{selected_problem['key']}_{key}",
+                    )
+
+        manual_analyze_button = st.form_submit_button(
+            f"Analyze {selected_problem['title']}",
+            type="primary",
+            use_container_width=True,
+        )
+
+if manual_analyze_button:
+    manual_values, manual_errors = _parse_manual_values(manual_inputs)
+    missing_manual_fields = [
+        field_key for field_key in selected_problem["fields"] if field_key not in manual_values
+    ]
+    if manual_errors:
+        for error in manual_errors:
+            st.error(error)
+    elif missing_manual_fields:
+        missing_labels = [
+            MANUAL_FIELD_LOOKUP[field_key][1] for field_key in missing_manual_fields
+        ]
+        st.warning(f"Please enter: {', '.join(missing_labels)}.")
+    else:
+        with st.spinner("Analyzing manually entered medical values..."):
+            try:
+                _sync_session_api_keys_to_env()
+                prediction_payload = predict_from_parsed(manual_values, models_dir=MODEL_DIR)
+                prediction_key = selected_problem["key"]
+                manual_result = {
+                    "parsed_values": manual_values,
+                    "predictions": {
+                        prediction_key: prediction_payload["predictions"].get(prediction_key, {})
+                    },
+                    "explanations": {
+                        prediction_key: prediction_payload["explanations"].get(prediction_key, {})
+                    },
+                }
+                _show_completed_analysis(manual_result, download_key="manual_pdf_download")
+            except Exception as e:
+                st.markdown(f"""
+                <div class="alert-danger">
+                    <strong>Error Processing Manual Values</strong><br>
+                    {str(e)}
+                </div>
+                """, unsafe_allow_html=True)
+
+
+# Report upload workflow
+st.markdown('<div class="card upload-card-light">', unsafe_allow_html=True)
 
 uploaded_file = main.file_uploader(
     "Select a file to analyze",
@@ -1315,22 +910,22 @@ if uploaded_file is None:
         unsafe_allow_html=True,
     )
 else:
-    _raw_name = uploaded_file.name.replace("\\", "/").split("/")[-1]
-    _safe_name = html.escape(_raw_name)
-    _size_kb = uploaded_file.size / 1024
-    if _size_kb >= 1024:
-        _size_str = f"{_size_kb / 1024:.2f} MB"
+    raw_file_name = uploaded_file.name.replace("\\", "/").split("/")[-1]
+    safe_file_name = html.escape(raw_file_name)
+    file_size_kb = uploaded_file.size / 1024
+    if file_size_kb >= 1024:
+        file_size_text = f"{file_size_kb / 1024:.2f} MB"
     else:
-        _size_str = f"{_size_kb:.2f} KB"
+        file_size_text = f"{file_size_kb:.2f} KB"
     st.markdown(
         f"""
         <div class="upload-file-row">
-            <div class="upload-file-icon" aria-hidden="true">📄</div>
+            <div class="upload-file-icon" aria-hidden="true">File</div>
             <div class="upload-file-meta">
-                <div class="upload-file-name" title="{_safe_name}">{_safe_name}</div>
-                <div class="upload-file-size">{_size_str}</div>
+                <div class="upload-file-name" title="{safe_file_name}">{safe_file_name}</div>
+                <div class="upload-file-size">{file_size_text}</div>
             </div>
-            <div class="upload-file-status"><span class="check">✓</span> Uploaded</div>
+            <div class="upload-file-status"><span class="check">OK</span> Uploaded</div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -1355,10 +950,9 @@ if uploaded_file is not None:
     
     st.markdown("---")
     
-    # Analyze button
-    col1, col2 = st.columns([2, 1])
+    analyze_col, _ = st.columns([2, 1])
     
-    with col1:
+    with analyze_col:
         analyze_button = st.button("Analyze Medical Report", type="primary", use_container_width=True)
     
     if analyze_button:
@@ -1370,57 +964,11 @@ if uploaded_file is not None:
                     tmp.write(uploaded_file.getbuffer())
                     tmp_path = tmp.name
                 
-                # Keep session API key in environment for this run
-                if st.session_state.get("grok_api_key"):
-                    os.environ["GROK_API_KEY"] = st.session_state["grok_api_key"]
-
-                if st.session_state.get("groq_api_key"):
-                    os.environ["GROQ_API_KEY"] = st.session_state["groq_api_key"]
+                _sync_session_api_keys_to_env()
 
                 # Run prediction
-                result = run(tmp_path, models_dir="models")
-                
-                # Display results
-                st.markdown('<hr class="divider">', unsafe_allow_html=True)
-                st.markdown('<div class="card-title">Analysis Results</div>', unsafe_allow_html=True)
-                
-                format_result(result)
-                
-                st.markdown('<hr class="divider">', unsafe_allow_html=True)
-                
-                # Success message
-                st.markdown("""
-                <div class="alert-success">
-                    <strong>Analysis Complete</strong><br>
-                    Results have been generated. Review carefully and consult your healthcare provider.
-                </div>
-                """, unsafe_allow_html=True)
-                
-                # Additional recommendations
-                st.markdown("""
-                <div class="card">
-                    <div class="card-title">Next Steps</div>
-                    <div class="sidebar-text">
-                    1. <strong>Review Results</strong> - Examine the risk assessments above<br>
-                    2. <strong>Consult Doctor</strong> - Share these results with your healthcare provider<br>
-                    3. <strong>Follow-up</strong> - Get professional diagnosis and treatment plan<br>
-                    4. <strong>Download PDF Report</strong> - Save the formatted report for your records
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-                
-                # Download results (PDF)
-                try:
-                    pdf_bytes = _build_pdf_report_bytes(result)
-                    st.download_button(
-                        label="Download PDF Report",
-                        data=pdf_bytes,
-                        file_name=f"medicare_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
-                        mime="application/pdf",
-                        use_container_width=True,
-                    )
-                except Exception as e:
-                    st.warning(f"PDF generation failed: {str(e)}")
+                result = run(tmp_path, models_dir=MODEL_DIR)
+                _show_completed_analysis(result, download_key="upload_pdf_download")
                 
             except Exception as e:
                 st.markdown(f"""

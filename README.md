@@ -1,84 +1,169 @@
 # MediCare AI
 
-MediCare AI is a compact healthcare risk prediction app that extracts clinical values from structured datasets and uploaded reports to predict heart disease, diabetes, and chronic kidney disease.
+MediCare AI is a Streamlit-based health risk screening application for diabetes, heart disease, and chronic kidney disease. It can analyze uploaded medical reports or manually entered lab values, then shows model-based risk estimates, AI explanations, charts, and a downloadable PDF report.
 
-## What it does
-- extracts values from PDF/image reports using OCR and PDF parsing
-- predicts disease risk using classical ML and a Keras neural network
-- displays results in a Streamlit interface
-- supports explainable output for model transparency
+> This project is for educational and informational risk screening only. It is not a medical diagnosis and must not replace advice from a qualified healthcare professional.
 
-## Setup
-1. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-2. Copy `.env.example` to `.env` and add your `GROQ_API_KEY`.
-3. Run:
-   ```bash
-   streamlit run streamlit_app.py
-   ```
+## Features
 
-## Diseases covered
-- Heart Disease
-- Diabetes
-- Chronic Kidney Disease
+- Manual value entry for specific health problems:
+  - Diabetes: glucose, BMI, age
+  - Heart disease: age, systolic blood pressure, cholesterol
+  - Kidney disease: creatinine, urea, albumin, hemoglobin
+- Report upload analysis for PDF, PNG, JPG, and JPEG files
+- PDF text extraction with `pdfplumber`
+- Image OCR with `pytesseract`
+- Multi-disease ML prediction pipeline
+- Risk bands: Low, Medium, High
+- AI-generated explanations using Grok/Groq-compatible OpenAI client settings
+- Downloadable PDF summary report
+- Streamlit UI with hospital-style dark theme
 
-## Models used
-- Heart disease: Keras neural network
-- Diabetes: voting ensemble classifier
-- CKD: XGBoost
+## Supported Conditions
 
-## Key files
-- `streamlit_app.py` — user interface
-- `predict_from_report.py` — report parsing and feature extraction
-- `train_models.py` — training and model selection
-- `keras_model.py` — heart disease neural network
+| Condition | Main values used |
+| --- | --- |
+| Diabetes | Glucose, BMI, Age, Blood Pressure when available |
+| Heart Disease | Age, Systolic Blood Pressure, Cholesterol |
+| Chronic Kidney Disease | Creatinine, Urea, Albumin, Hemoglobin, Age/BP when available |
 
-## Project structure
+## Project Structure
+
 ```text
 Care/
-|-- data/
-|-- eda_outputs/
-|-- models/
-|-- .venv/
-|-- keras_model.py
-|-- packages.txt
-|-- predict_from_report.py
-|-- streamlit_app.py
+|-- assets/
+|   |-- styles.css                 # Streamlit UI styling
+|-- data/                         # Training datasets
+|-- eda_outputs/                  # EDA charts and summary JSON files
+|-- models/                       # Saved model artifacts and metrics
+|-- exapmles report/              # Example medical reports
+|-- keras_model.py                # Lightweight Keras-compatible inference wrapper
+|-- predict_from_report.py        # OCR/PDF parsing, value extraction, prediction logic
+|-- streamlit_app.py              # Main Streamlit application
+|-- train_models.py               # Model training pipeline
+|-- requirements.txt              # Runtime dependencies
+|-- packages.txt                  # Streamlit Cloud system packages
+|-- start_project.bat             # Windows launcher
+|-- README.md
 ```
 
-```
+## Setup
 
-For local model training, install the training extras too:
+Create and activate a virtual environment:
 
 ```powershell
-pip install -r requirements-train.txt
+python -m venv .venv
+.venv\Scripts\activate
 ```
 
-### 3. Install Tesseract OCR on Windows
-
-Download:
-- `https://github.com/UB-Mannheim/tesseract/wiki`
-
-Default install path:
-- `C:\Program Files\Tesseract-OCR\tesseract.exe`
-
-If needed, set it manually:
+Install dependencies:
 
 ```powershell
-$env:TESSERACT_CMD = 'C:\Program Files\Tesseract-OCR\tesseract.exe'
+pip install -r requirements.txt
 ```
 
-## Training
+## Run The App
 
-Run model training:
+Recommended command:
+
+```powershell
+.venv\Scripts\python.exe -m streamlit run streamlit_app.py
+```
+
+Or use the included Windows launcher:
+
+```powershell
+.\start_project.bat
+```
+
+Open the app:
+
+```text
+http://localhost:8501
+```
+
+## How To Use
+
+### Manual Value Analysis
+
+1. Open the app.
+2. Go to `Enter Medical Values Manually`.
+3. Click one health problem: `Diabetes`, `Heart Disease`, or `Kidney Disease`.
+4. Enter the requested values.
+5. Click the analyze button for that condition.
+
+Clicking the same health-problem button again hides its manual input form.
+
+### Uploaded Report Analysis
+
+1. Upload a medical report as PDF, PNG, JPG, or JPEG.
+2. Preview the document when available.
+3. Click `Analyze Medical Report`.
+4. Review extracted values, risk results, explanations, and the PDF download.
+
+## Optional API Keys
+
+AI explanations use a Grok/Groq-compatible OpenAI client. You can add keys in the app sidebar or set environment variables:
+
+```powershell
+$env:GROK_API_KEY = "your_key_here"
+$env:GROQ_API_KEY = "your_key_here"
+```
+
+Optional overrides:
+
+```powershell
+$env:API_BASE_URL = "https://api.groq.com/openai/v1"
+$env:GROK_MODEL = "llama-3.3-70b-versatile"
+```
+
+If no API key is provided, predictions can still run, but AI explanations may show as unavailable.
+
+## OCR Setup For Image Reports
+
+PDF reports work through `pdfplumber`. Image reports need Tesseract OCR.
+
+On Windows, install Tesseract from:
+
+```text
+https://github.com/UB-Mannheim/tesseract/wiki
+```
+
+Default path:
+
+```text
+C:\Program Files\Tesseract-OCR\tesseract.exe
+```
+
+If needed, set the path manually:
+
+```powershell
+$env:TESSERACT_CMD = "C:\Program Files\Tesseract-OCR\tesseract.exe"
+```
+
+## Command Line Prediction
+
+Run prediction directly from a report file:
+
+```powershell
+.venv\Scripts\python.exe predict_from_report.py --file path\to\report.pdf
+```
+
+Save JSON output:
+
+```powershell
+.venv\Scripts\python.exe predict_from_report.py --file path\to\report.jpg --out result.json
+```
+
+## Training Models
+
+Run the training pipeline:
 
 ```powershell
 .venv\Scripts\python.exe train_models.py
 ```
 
-Optional GPU flags:
+Optional GPU modes:
 
 ```powershell
 .venv\Scripts\python.exe train_models.py --gpu auto
@@ -86,84 +171,33 @@ Optional GPU flags:
 .venv\Scripts\python.exe train_models.py --gpu never
 ```
 
-Training outputs:
+Training outputs include:
+
 - `models/heart_model.pkl`
 - `models/diabetes_model.pkl`
 - `models/kidney_model.pkl`
 - `models/scalers.pkl`
 - `models/dataset_metadata.json`
-- per-disease metrics JSON files
-- EDA charts and summaries in `eda_outputs/`
+- disease metrics JSON files
+- EDA charts in `eda_outputs/`
 
-## Streamlit Cloud Deployment
+## Deployment Notes
 
-If deployment fails during dependency installation, the most common cause is that the app is trying to install training-only packages that are not needed in production.
+For Streamlit Cloud:
 
-This repository is now split into:
-- `requirements.txt`
-  Runtime dependencies for the deployed app
-- `requirements-train.txt`
-  Extra packages used only for training and experimentation
-- `packages.txt`
-  Linux system packages needed by Streamlit Cloud for OCR
+- Install Python dependencies from `requirements.txt`.
+- Use `packages.txt` to install `tesseract-ocr` for image OCR.
+- Prefer Python 3.11 if the deployment platform allows choosing a version.
+- Add `GROQ_API_KEY` or `GROK_API_KEY` in Streamlit secrets if AI explanations are needed.
 
-Deployment notes:
-- Streamlit Cloud should install `requirements.txt`
-- `packages.txt` adds `tesseract-ocr` so image OCR can work in deployment
-- TensorFlow is kept in `requirements-train.txt` because the deployed app now uses the saved heart model weights for inference without needing the full TensorFlow package
-- if your app settings allow choosing Python, prefer Python `3.11`
-- after pushing these changes, redeploy or reboot the app
+## Important Limitations
 
-## Run the Streamlit App
+- Model output is only a risk estimate, not a diagnosis.
+- OCR quality depends heavily on report clarity.
+- Manually entered values must use the units shown in the form.
+- Missing values can prevent a condition-specific prediction.
+- AI explanations are generated text and should be reviewed critically.
 
-```powershell
-.venv\Scripts\python.exe -m streamlit run streamlit_app.py
-```
+## Medical Disclaimer
 
-Open in browser:
-
-```text
-http://localhost:8501
-```
-
-## Run Prediction from the Command Line
-
-```powershell
-.venv\Scripts\python.exe predict_from_report.py --file path\to\report.pdf
-```
-
-Example with output file:
-
-```powershell
-.venv\Scripts\python.exe predict_from_report.py --file path\to\report.jpg --out result.json
-```
-
-## App Output
-
-The app can show:
-- extracted report values
-- predicted probability for each disease
-- risk band: Low, Medium, or High
-- explanation blocks for classical models
-
-Risk bands:
-- `0.00 - 0.30` -> `Low`
-- `0.30 - 0.60` -> `Medium`
-- `0.60 - 1.00` -> `High`
-
-## Current Limitations
-
-- Heart predictions use a Keras neural network, so SHAP explanations for heart are not currently available
-- TensorFlow is required for training the heart model, but not for deployed inference
-- TensorFlow GPU support is limited on native Windows for newer TensorFlow versions
-- deployment environments may still need a restart after dependency changes
-- prediction quality depends on report clarity and correct OCR extraction
-- this system is for risk estimation, not medical diagnosis
-
-## Important Medical Disclaimer
-
-This application is an AI-assisted risk prediction tool for educational and informational use only.
-
-It does not provide a medical diagnosis.
-
-Always consult a qualified healthcare professional before making any medical decision based on the results.
+MediCare AI provides AI-assisted screening information only. It does not diagnose, treat, or prevent disease. Always consult a qualified healthcare provider before making health decisions.
